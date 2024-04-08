@@ -1,0 +1,7 @@
+According to the information provided, GPT-4 was trained using part of the GSM-8K dataset in its pre-training mix. The authors state: "For GSM-8K, we include part of the training set in GPT-4's pre-training mix (see Appendix E for details)."
+
+The key details from Appendix E are:
+
+"For GSM-8K, we included part of the training set in the GPT-4 pre-training mix. Specifically, we included the first 25% of the GSM-8K training set in the pretraining data for GPT-4. When evaluating GPT-4 on GSM-8K, we use chain-of-thought prompting [11]."
+
+So in summary, 25% of the GSM-8K training data was included in the pre-training data for GPT-4, and the authors used chain-of-thought prompting when evaluating GPT-4 on the GSM-8K benchmark.

@@ -1,0 +1,1 @@
+This text is captured from a PDF. Remove page numbers and clean up formatting issues, such as line breaks in the middle of sentences to make it read better in plain text. Reply only with the output text.

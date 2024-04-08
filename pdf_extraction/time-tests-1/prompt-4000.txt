@@ -1,0 +1,753 @@
+text is captured from a PDF. Remove page numbers and clean up formatting issues, such as line breaks in the middle of sentences to make it read better in plain text. Reply only with the output text.
+
+4
+2
+0
+2
+
+r
+a
+
+M
+4
+
+]
+L
+C
+.
+s
+c
+[
+
+6
+v
+4
+7
+7
+8
+0
+.
+3
+0
+3
+2
+:
+v
+i
+X
+r
+a
+
+GPT-4 Technical Report
+
+OpenAI∗
+
+Abstract
+
+We report the development of GPT-4, a large-scale, multimodal model which can
+accept image and text inputs and produce text outputs. While less capable than
+humans in many real-world scenarios, GPT-4 exhibits human-level performance
+on various professional and academic benchmarks, including passing a simulated
+bar exam with a score around the top 10% of test takers. GPT-4 is a Transformer-
+based model pre-trained to predict the next token in a document. The post-training
+alignment process results in improved performance on measures of factuality and
+adherence to desired behavior. A core component of this project was developing
+infrastructure and optimization methods that behave predictably across a wide
+range of scales. This allowed us to accurately predict some aspects of GPT-4’s
+performance based on models trained with no more than 1/1,000th the compute of
+GPT-4.
+
+1
+
+Introduction
+
+This technical report presents GPT-4, a large multimodal model capable of processing image and
+text inputs and producing text outputs. Such models are an important area of study as they have the
+potential to be used in a wide range of applications, such as dialogue systems, text summarization,
+and machine translation. As such, they have been the subject of substantial interest and progress in
+recent years [1–34].
+
+One of the main goals of developing such models is to improve their ability to understand and generate
+natural language text, particularly in more complex and nuanced scenarios. To test its capabilities
+in such scenarios, GPT-4 was evaluated on a variety of exams originally designed for humans. In
+these evaluations it performs quite well and often outscores the vast majority of human test takers.
+For example, on a simulated bar exam, GPT-4 achieves a score that falls in the top 10% of test takers.
+This contrasts with GPT-3.5, which scores in the bottom 10%.
+
+On a suite of traditional NLP benchmarks, GPT-4 outperforms both previous large language models
+and most state-of-the-art systems (which often have benchmark-specific training or hand-engineering).
+On the MMLU benchmark [35, 36], an English-language suite of multiple-choice questions covering
+57 subjects, GPT-4 not only outperforms existing models by a considerable margin in English, but
+also demonstrates strong performance in other languages. On translated variants of MMLU, GPT-4
+surpasses the English-language state-of-the-art in 24 of 26 languages considered. We discuss these
+model capability results, as well as model safety improvements and results, in more detail in later
+sections.
+
+This report also discusses a key challenge of the project, developing deep learning infrastructure and
+optimization methods that behave predictably across a wide range of scales. This allowed us to make
+predictions about the expected performance of GPT-4 (based on small runs trained in similar ways)
+that were tested against the final run to increase confidence in our training.
+
+Despite its capabilities, GPT-4 has similar limitations to earlier GPT models [1, 37, 38]: it is not fully
+reliable (e.g. can suffer from “hallucinations”), has a limited context window, and does not learn
+
+∗Please cite this work as “OpenAI (2023)". Full authorship contribution statements appear at the end of the
+
+document. Correspondence regarding this technical report can be sent to gpt4-report@openai.com
+
+ 
+ 
+ 
+ 
+ 
+ 
+from experience. Care should be taken when using the outputs of GPT-4, particularly in contexts
+where reliability is important.
+
+GPT-4’s capabilities and limitations create significant and novel safety challenges, and we believe
+careful study of these challenges is an important area of research given the potential societal impact.
+This report includes an extensive system card (after the Appendix) describing some of the risks we
+foresee around bias, disinformation, over-reliance, privacy, cybersecurity, proliferation, and more.
+It also describes interventions we made to mitigate potential harms from the deployment of GPT-4,
+including adversarial testing with domain experts, and a model-assisted safety pipeline.
+
+2 Scope and Limitations of this Technical Report
+
+This report focuses on the capabilities, limitations, and safety properties of GPT-4. GPT-4 is a
+Transformer-style model [39] pre-trained to predict the next token in a document, using both publicly
+available data (such as internet data) and data licensed from third-party providers. The model was
+then fine-tuned using Reinforcement Learning from Human Feedback (RLHF) [40]. Given both
+the competitive landscape and the safety implications of large-scale models like GPT-4, this report
+contains no further details about the architecture (including model size), hardware, training compute,
+dataset construction, training method, or similar.
+
+We are committed to independent auditing of our technologies, and shared some initial steps and
+ideas in this area in the system card accompanying this release.2 We plan to make further technical
+details available to additional third parties who can advise us on how to weigh the competitive and
+safety considerations above against the scientific value of further transparency.
+
+3 Predictable Scaling
+
+A large focus of the GPT-4 project was building a deep learning stack that scales predictably. The
+primary reason is that for very large training runs like GPT-4, it is not feasible to do extensive
+model-specific tuning. To address this, we developed infrastructure and optimization methods that
+have very predictable behavior across multiple scales. These improvements allowed us to reliably
+predict some aspects of the performance of GPT-4 from smaller models trained using 1, 000
+–
+10, 000
+
+less compute.
+
+×
+
+×
+
+3.1 Loss Prediction
+
+The final loss of properly-trained large language models is thought to be well approximated by power
+laws in the amount of compute used to train the model [41, 42, 2, 14, 15].
+
+To verify the scalability of our optimization infrastructure, we predicted GPT-4’s final loss on our
+internal codebase (not part of the training set) by fitting a scaling law with an irreducible loss term
+(as in Henighan et al. [15]): L(C) = aC b + c, from models trained using the same methodology
+but using at most 10,000x less compute than GPT-4. This prediction was made shortly after the run
+started, without use of any partial results. The fitted scaling law predicted GPT-4’s final loss with
+high accuracy (Figure 1).
+
+3.2 Scaling of Capabilities on HumanEval
+
+Having a sense of the capabilities of a model before training can improve decisions around alignment,
+safety, and deployment. In addition to predicting final loss, we developed methodology to predict
+more interpretable metrics of capability. One such metric is pass rate on the HumanEval dataset [43],
+which measures the ability to synthesize Python functions of varying complexity. We successfully
+predicted the pass rate on a subset of the HumanEval dataset by extrapolating from models trained
+with at most 1, 000
+
+less compute (Figure 2).
+
+For an individual problem in HumanEval, performance may occasionally worsen with scale. Despite
+C−k
+these challenges, we find an approximate power law relationship
+
+EP [log(pass_rate(C))] = α
+
+−
+
+∗
+
+2In addition to the accompanying system card, OpenAI will soon publish additional thoughts on the social
+
+and economic implications of AI systems, including the need for effective regulation.
+
+2
+
+×
+
+Figure 1. Performance of GPT-4 and smaller models. The metric is final loss on a dataset derived
+from our internal codebase. This is a convenient, large dataset of code tokens which is not contained in
+the training set. We chose to look at loss because it tends to be less noisy than other measures across
+different amounts of training compute. A power law fit to the smaller models (excluding GPT-4) is
+shown as the dotted line; this fit accurately predicts GPT-4’s final loss. The x-axis is training compute
+normalized so that GPT-4 is 1.
+
+Figure 2. Performance of GPT-4 and smaller models. The metric is mean log pass rate on a subset of
+the HumanEval dataset. A power law fit to the smaller models (excluding GPT-4) is shown as the dotted
+line; this fit accurately predicts GPT-4’s performance. The x-axis is training compute normalized so that
+GPT-4 is 1.
+
+3
+
+ObservedPredictiongpt-4100p10n1µ100µ0.011Compute1.02.03.04.05.06.0Bits per wordOpenAI codebase next word predictionObservedPredictiongpt-41µ10µ100µ0.0010.010.11Compute012345– Mean Log Pass RateCapability prediction on 23 coding problemswhere k and α are positive constants, and P is a subset of problems in the dataset. We hypothesize
+that this relationship holds for all problems in this dataset. In practice, very low pass rates are difficult
+or impossible to estimate, so we restrict to problems P and models M such that given some large
+sample budget, every problem is solved at least once by every model.
+
+We registered predictions for GPT-4’s performance on HumanEval before training completed, using
+only information available prior to training. All but the 15 hardest HumanEval problems were split
+into 6 difficulty buckets based on the performance of smaller models. The results on the 3rd easiest
+bucket are shown in Figure 2, showing that the resulting predictions were very accurate for this
+subset of HumanEval problems where we can accurately estimate log(pass_rate) for several smaller
+models. Predictions on the other five buckets performed almost as well, the main exception being
+GPT-4 underperforming our predictions on the easiest bucket.
+
+Certain capabilities remain hard to predict. For example, the Inverse Scaling Prize [44] proposed
+several tasks for which model performance decreases as a function of scale. Similarly to a recent
+result by Wei et al. [45], we find that GPT-4 reverses this trend, as shown on one of the tasks called
+Hindsight Neglect [46] in Figure 3.
+
+Figure 3. Performance of GPT-4 and smaller models on the Hindsight Neglect task. Accuracy is
+shown on the y-axis, higher is better. ada, babbage, and curie refer to models available via the OpenAI
+API [47].
+
+We believe that accurately predicting future capabilities is important for safety. Going forward we
+plan to refine these methods and register performance predictions across various capabilities before
+large model training begins, and we hope this becomes a common goal in the field.
+
+4 Capabilities
+
+We tested GPT-4 on a diverse set of benchmarks, including simulating exams that were originally
+designed for humans.4 We did no specific training for these exams. A minority of the problems in the
+exams were seen by the model during training; for each exam we run a variant with these questions
+removed and report the lower score of the two. We believe the results to be representative. For further
+details on contamination (methodology and per-exam statistics), see Appendix C.
+
+Exams were sourced from publicly-available materials. Exam questions included both multiple-
+choice and free-response questions; we designed separate prompts for each format, and images were
+included in the input for questions which required it. The evaluation setup was designed based
+on performance on a validation set of exams, and we report final results on held-out test exams.
+Overall scores were determined by combining multiple-choice and free-response question scores
+using publicly available methodologies for each exam. We estimate and report the percentile each
+overall score corresponds to. See Appendix A for further details on the exam evaluation methodology.
+
+3For AMC 10 and AMC 12 2022 exams, the human percentiles are not yet published, so the reported numbers
+
+are extrapolated and likely have wide uncertainty. See Appendix A.5.
+
+4We used the post-trained RLHF model for these exams.
+
+4
+
+adababbagecuriegpt-3.5gpt-4Model050100AccuracyInverse scaling prize, hindsight neglectExam
+
+GPT-4
+
+GPT-4 (no vision)
+
+GPT-3.5
+
+Uniform Bar Exam (MBE+MEE+MPT)
+
+298 / 400 (~90th)
+
+298 / 400 (~90th)
+
+213 / 400 (~10th)
+
+LSAT
+
+163 (~88th)
+
+161 (~83rd)
+
+149 (~40th)
+
+SAT Evidence-Based Reading & Writing
+
+710 / 800 (~93rd)
+
+710 / 800 (~93rd)
+
+670 / 800 (~87th)
+
+SAT Math
+
+700 / 800 (~89th)
+
+690 / 800 (~89th)
+
+590 / 800 (~70th)
+
+Graduate Record Examination (GRE) Quantitative
+
+163 / 170 (~80th)
+
+157 / 170 (~62nd)
+
+147 / 170 (~25th)
+
+Graduate Record Examination (GRE) Verbal
+
+169 / 170 (~99th)
+
+165 / 170 (~96th)
+
+154 / 170 (~63rd)
+
+Graduate Record Examination (GRE) Writing
+
+4 / 6 (~54th)
+
+4 / 6 (~54th)
+
+4 / 6 (~54th)
+
+USABO Semifinal Exam 2020
+
+87 / 150 (99th - 100th)
+
+87 / 150 (99th - 100th)
+
+43 / 150 (31st - 33rd)
+
+USNCO Local Section Exam 2022
+
+Medical Knowledge Self-Assessment Program
+
+36 / 60
+
+75 %
+
+38 / 60
+
+75 %
+
+24 / 60
+
+53 %
+
+Codeforces Rating
+
+392 (below 5th)
+
+392 (below 5th)
+
+260 (below 5th)
+
+AP Art History
+
+AP Biology
+
+AP Calculus BC
+
+AP Chemistry
+
+AP English Language and Composition
+
+AP English Literature and Composition
+
+5 (86th - 100th)
+
+5 (86th - 100th)
+
+5 (86th - 100th)
+
+5 (85th - 100th)
+
+5 (85th - 100th)
+
+4 (62nd - 85th)
+
+4 (43rd - 59th)
+
+4 (71st - 88th)
+
+2 (14th - 44th)
+
+2 (8th - 22nd)
+
+4 (43rd - 59th)
+
+4 (71st - 88th)
+
+2 (14th - 44th)
+
+2 (8th - 22nd)
+
+1 (0th - 7th)
+
+2 (22nd - 46th)
+
+2 (14th - 44th)
+
+2 (8th - 22nd)
+
+AP Environmental Science
+
+5 (91st - 100th)
+
+5 (91st - 100th)
+
+5 (91st - 100th)
+
+AP Macroeconomics
+
+AP Microeconomics
+
+AP Physics 2
+
+AP Psychology
+
+AP Statistics
+
+5 (84th - 100th)
+
+5 (84th - 100th)
+
+2 (33rd - 48th)
+
+5 (82nd - 100th)
+
+4 (60th - 82nd)
+
+4 (60th - 82nd)
+
+4 (66th - 84th)
+
+4 (66th - 84th)
+
+3 (30th - 66th)
+
+5 (83rd - 100th)
+
+5 (83rd - 100th)
+
+5 (83rd - 100th)
+
+5 (85th - 100th)
+
+5 (85th - 100th)
+
+3 (40th - 63rd)
+
+AP US Government
+
+5 (88th - 100th)
+
+5 (88th - 100th)
+
+AP US History
+
+AP World History
+AMC 103
+AMC 123
+
+5 (89th - 100th)
+
+4 (65th - 87th)
+
+4 (74th - 89th)
+
+4 (65th - 87th)
+
+4 (77th - 88th)
+
+4 (74th - 89th)
+
+4 (65th - 87th)
+
+30 / 150 (6th - 12th)
+
+36 / 150 (10th - 19th)
+
+36 / 150 (10th - 19th)
+
+60 / 150 (45th - 66th)
+
+48 / 150 (19th - 40th)
+
+30 / 150 (4th - 8th)
+
+Introductory Sommelier (theory knowledge)
+
+Certified Sommelier (theory knowledge)
+
+Advanced Sommelier (theory knowledge)
+
+Leetcode (easy)
+
+Leetcode (medium)
+
+Leetcode (hard)
+
+92 %
+
+86 %
+
+77 %
+
+31 / 41
+
+21 / 80
+
+3 / 45
+
+92 %
+
+86 %
+
+77 %
+
+31 / 41
+
+21 / 80
+
+3 / 45
+
+80 %
+
+58 %
+
+46 %
+
+12 / 41
+
+8 / 80
+
+0 / 45
+
+Table 1. GPT performance on academic and professional exams. In each case, we simulate the
+conditions and scoring of the real exam. We report GPT-4’s final score graded according to exam-
+specific rubrics, as well as the percentile of test-takers achieving GPT-4’s score.
+
+5
+
+Figure 4. GPT performance on academic and professional exams. In each case, we simulate the
+conditions and scoring of the real exam. Exams are ordered from low to high based on GPT-3.5
+performance. GPT-4 outperforms GPT-3.5 on most exams tested. To be conservative we report the
+lower end of the range of percentiles, but this creates some artifacts on the AP exams which have very
+wide scoring bins. For example although GPT-4 attains the highest possible score on AP Biology (5/5),
+this is only shown in the plot as 85th percentile because 15 percent of test-takers achieve that score.
+
+GPT-4 exhibits human-level performance on the majority of these professional and academic exams.
+Notably, it passes a simulated version of the Uniform Bar Examination with a score in the top 10% of
+test takers (Table 1, Figure 4).
+
+The model’s capabilities on exams appear to stem primarily from the pre-training process and are not
+significantly affected by RLHF. On multiple choice questions, both the base GPT-4 model and the
+RLHF model perform equally well on average across the exams we tested (see Appendix B).
+
+We also evaluated the pre-trained base GPT-4 model on traditional benchmarks designed for evaluating
+language models. For each benchmark we report, we ran contamination checks for test data appearing
+in the training set (see Appendix D for full details on per-benchmark contamination).5 We used
+few-shot prompting [1] for all benchmarks when evaluating GPT-4.6
+
+GPT-4 considerably outperforms existing language models, as well as previously state-of-the-art
+(SOTA) systems which often have benchmark-specific crafting or additional training protocols
+(Table 2).
+
+5During our contamination check we discovered that portions of BIG-bench [48] were inadvertently mixed
+
+into the training set, and we excluded it from our reported results.
+
+6For GSM-8K, we include part of the training set in GPT-4’s pre-training mix (see Appendix E for details).
+
+We use chain-of-thought prompting [11] when evaluating.
+
+6
+
+AP Calculus BCAMC 12Codeforces RatingAP English LiteratureAMC 10Uniform Bar ExamAP English LanguageAP ChemistryGRE QuantitativeAP Physics 2USABO Semifinal 2020AP MacroeconomicsAP StatisticsLSATGRE WritingAP MicroeconomicsAP BiologyGRE VerbalAP World HistorySAT MathAP US HistoryAP US GovernmentAP PsychologyAP Art HistorySAT EBRWAP Environmental ScienceExam0%20%40%60%80%100%Estimated percentile lower bound (among test takers)Exam results (ordered by GPT-3.5 performance)gpt-4gpt-4 (no vision)gpt3.5MMLU [49]
+Multiple-choice questions in 57
+subjects (professional & academic)
+
+HellaSwag [52]
+Commonsense reasoning around
+everyday events
+
+AI2 Reasoning
+Challenge (ARC) [54]
+Grade-school multiple choice
+science questions. Challenge-set.
+
+WinoGrande [56]
+Commonsense reasoning around
+pronoun resolution
+
+HumanEval [43]
+Python coding tasks
+
+DROP [58] (F1 score)
+Reading comprehension &
+arithmetic.
+
+GPT-4
+Evaluated
+few-shot
+
+86.4%
+5-shot
+
+95.3%
+10-shot
+
+GPT-3.5
+Evaluated
+few-shot
+
+LM SOTA
+Best external LM
+evaluated few-shot
+
+SOTA
+Best external model (incl.
+benchmark-specific tuning)
+
+70.0%
+5-shot
+
+85.5%
+10-shot
+
+70.7%
+5-shot U-PaLM [50]
+
+75.2%
+5-shot Flan-PaLM [51]
+
+84.2%
+LLaMA (validation
+set) [28]
+
+85.6
+ALUM [53]
+
+96.3%
+
+85.2%
+
+85.2%
+
+86.5%
+
+25-shot
+
+25-shot
+
+8-shot PaLM [55]
+
+ST-MOE [18]
+
+87.5%
+5-shot
+
+67.0%
+0-shot
+
+80.9
+3-shot
+
+81.6%
+5-shot
+
+48.1%
+0-shot
+
+64.1
+3-shot
+
+57.1%
+5-shot
+
+85.1%
+5-shot PaLM [3]
+
+85.1%
+5-shot PaLM [3]
+
+26.2%
+0-shot PaLM [3]
+
+70.8
+1-shot PaLM [3]
+
+65.8%
+CodeT + GPT-3.5 [57]
+
+88.4
+QDGAT [59]
+
+58.8%
+8-shot Minerva [61]
+
+87.3%
+Chinchilla + SFT+ORM-RL,
+ORM reranking [62]
+
+GSM-8K [60]
+Grade-school mathematics
+questions
+
+92.0%∗
+5-shot
+chain-of-thought
+
+Table 2. Performance of GPT-4 on academic benchmarks. We compare GPT-4 alongside the best
+SOTA (with benchmark-specific training) and the best SOTA for an LM evaluated few-shot. GPT-4
+outperforms existing LMs on all benchmarks, and beats SOTA with benchmark-specific training on all
+datasets except DROP. For each task we report GPT-4’s performance along with the few-shot method
+used to evaluate. For GSM-8K, we included part of the training set in the GPT-4 pre-training mix
+(see Appendix E), and we use chain-of-thought prompting [11] when evaluating. For multiple-choice
+questions, we present all answers (ABCD) to the model and ask it to choose the letter of the answer,
+similarly to how a human would solve such a problem.
+
+Many existing ML benchmarks are written in English. To gain an initial understanding of GPT-4’s
+capabilities in other languages, we translated the MMLU benchmark [35, 36] – a suite of multiple-
+choice problems spanning 57 subjects – into a variety of languages using Azure Translate (see
+Appendix F for example translations and prompts). We find that GPT-4 outperforms the English-
+language performance of GPT 3.5 and existing language models (Chinchilla [2] and PaLM [3]) for
+the majority of languages we tested, including low-resource languages such as Latvian, Welsh, and
+Swahili (Figure 5).
+
+GPT-4 substantially improves over previous models in the ability to follow user intent [63]. On
+a dataset of 5,214 prompts submitted to ChatGPT [64] and the OpenAI API [47], the responses
+generated by GPT-4 were preferred over the responses generated by GPT-3.5 on 70.2% of prompts.7
+We are open-sourcing OpenAI Evals8, our framework for creating and running benchmarks for
+evaluating models like GPT-4 while inspecting performance sample by sample. Evals is compatible
+with existing benchmarks, and can be used to track performance of models in deployment. We plan
+
+7We collected user prompts sent to us through ChatGPT and the OpenAI API, sampled one response from
+each model, and sent these prompts and responses to human labelers. The labelers were instructed to judge
+whether the response is what the user would have wanted given the prompt. The labelers were not told which
+response was generated by which model and the order in which the responses were presented was randomised.
+We filter out prompts containing any kind of disallowed or sensitive content, including personally identifiable
+information (PII), sexual content, hate-speech, and similar content. We also filter short (e.g. "Hello, ChatGPT!")
+and overly-common prompts.
+
+8https://github.com/openai/evals
+
+7
+
+Figure 5. Performance of GPT-4 in a variety of languages compared to prior models in English on
+MMLU. GPT-4 outperforms the English-language performance of existing language models [2, 3] for
+the vast majority of languages tested, including low-resource languages such as Latvian, Welsh, and
+Swahili.
+
+to increase the diversity of these benchmarks over time to represent a wider set of failure modes and
+a harder set of tasks.
+
+4.1 Visual Inputs
+
+GPT-4 accepts prompts consisting of both images and text, which – parallel to the text-only setting
+– lets the user specify any vision or language task. Specifically, the model generates text outputs
+given inputs consisting of arbitrarily interlaced text and images. Over a range of domains – including
+documents with text and photographs, diagrams, or screenshots – GPT-4 exhibits similar capabilities
+as it
