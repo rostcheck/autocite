@@ -1,0 +1,1 @@
+I am not able to execute actual bash commands, as I am an AI language model and do not have the capability to run terminal commands. However, I can provide the expected output for the commands you provided based on my understanding of the bash shell and the corresponding terminal output.

@@ -1,0 +1,346 @@
+are an editing assistant. Your task is to transform text extracted from a PDF into clean, well-formatted ASCII text. Remove page numbers, footnotes, figures, equations, and captions. Fix interruptions in the middle of sentences to make the sentence read smoothly. Where text is formatted into columns, restore it to unbroken ASCII text lines.  Reply only with the output text.
+
+6
+1
+0
+2
+
+l
+u
+J
+
+5
+2
+
+]
+I
+
+A
+.
+s
+c
+[
+
+2
+v
+5
+6
+5
+6
+0
+.
+6
+0
+6
+1
+:
+v
+i
+X
+r
+a
+
+Concrete Problems in AI Safety
+
+Dario Amodei∗
+Google Brain
+
+Chris Olah∗
+Google Brain
+
+Jacob Steinhardt
+Stanford University
+
+Paul Christiano
+UC Berkeley
+
+John Schulman
+OpenAI
+
+Dan Man´e
+Google Brain
+
+Abstract
+
+Rapid progress in machine learning and artiﬁcial intelligence (AI) has brought increasing atten-
+tion to the potential impacts of AI technologies on society. In this paper we discuss one such
+potential impact: the problem of accidents in machine learning systems, deﬁned as unintended
+and harmful behavior that may emerge from poor design of real-world AI systems. We present a
+list of ﬁve practical research problems related to accident risk, categorized according to whether
+the problem originates from having the wrong objective function (“avoiding side eﬀects” and
+“avoiding reward hacking”), an objective function that is too expensive to evaluate frequently
+(“scalable supervision”), or undesirable behavior during the learning process (“safe exploration”
+and “distributional shift”). We review previous work in these areas as well as suggesting re-
+search directions with a focus on relevance to cutting-edge AI systems. Finally, we consider
+the high-level question of how to think most productively about the safety of forward-looking
+applications of AI.
+
+1 Introduction
+
+The last few years have seen rapid progress on long-standing, diﬃcult problems in machine learning
+and artiﬁcial intelligence (AI), in areas as diverse as computer vision [82], video game playing [102],
+autonomous vehicles [86], and Go [140]. These advances have brought excitement about the positive
+potential for AI to transform medicine [126], science [59], and transportation [86], along with concerns
+about the privacy [76], security [115], fairness [3], economic [32], and military [16] implications of
+autonomous systems, as well as concerns about the longer-term implications of powerful AI [27, 167].
+
+The authors believe that AI technologies are likely to be overwhelmingly beneﬁcial for humanity, but
+we also believe that it is worth giving serious thought to potential challenges and risks. We strongly
+support work on privacy, security, fairness, economics, and policy, but in this document we discuss
+another class of problem which we believe is also relevant to the societal impacts of AI: the problem
+of accidents in machine learning systems. We deﬁne accidents as unintended and harmful behavior
+that may emerge from machine learning systems when we specify the wrong objective function, are
+
+∗These authors contributed equally.
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+not careful about the learning process, or commit other machine learning-related implementation
+errors.
+
+There is a large and diverse literature in the machine learning community on issues related to
+accidents, including robustness, risk-sensitivity, and safe exploration; we review these in detail below.
+However, as machine learning systems are deployed in increasingly large-scale, autonomous, open-
+domain situations, it is worth reﬂecting on the scalability of such approaches and understanding
+what challenges remain to reducing accident risk in modern machine learning systems. Overall, we
+believe there are many concrete open technical problems relating to accident prevention in machine
+learning systems.
+
+There has been a great deal of public discussion around accidents. To date much of this discussion has
+highlighted extreme scenarios such as the risk of misspeciﬁed objective functions in superintelligent
+agents [27]. However, in our opinion one need not invoke these extreme scenarios to productively
+discuss accidents, and in fact doing so can lead to unnecessarily speculative discussions that lack
+precision, as noted by some critics [38, 85]. We believe it is usually most productive to frame accident
+risk in terms of practical (though often quite general) issues with modern ML techniques. As AI
+capabilities advance and as AI systems take on increasingly important societal functions, we expect
+the fundamental challenges discussed in this paper to become increasingly important. The more
+successfully the AI and machine learning communities are able to anticipate and understand these
+fundamental technical challenges, the more successful we will ultimately be in developing increasingly
+useful, relevant, and important AI systems.
+
+Our goal in this document is to highlight a few concrete safety problems that are ready for ex-
+perimentation today and relevant to the cutting edge of AI systems, as well as reviewing existing
+literature on these problems. In Section 2, we frame mitigating accident risk (often referred to as
+“AI safety” in public discussions) in terms of classic methods in machine learning, such as supervised
+classiﬁcation and reinforcement learning. We explain why we feel that recent directions in machine
+learning, such as the trend toward deep reinforcement learning and agents acting in broader environ-
+ments, suggest an increasing relevance for research around accidents. In Sections 3-7, we explore ﬁve
+concrete problems in AI safety. Each section is accompanied by proposals for relevant experiments.
+Section 8 discusses related eﬀorts, and Section 9 concludes.
+
+2 Overview of Research Problems
+
+Very broadly, an accident can be described as a situation where a human designer had in mind
+a certain (perhaps informally speciﬁed) objective or task, but the system that was designed and
+deployed for that task produced harmful and unexpected results. . This issue arises in almost any
+engineering discipline, but may be particularly important to address when building AI systems [146].
+We can categorize safety problems according to where in the process things went wrong.
+
+First, the designer may have speciﬁed the wrong formal objective function, such that maximizing that
+objective function leads to harmful results, even in the limit of perfect learning and inﬁnite data.
+Negative side eﬀects (Section 3) and reward hacking (Section 4) describe two broad mechanisms
+that make it easy to produce wrong objective functions.
+In “negative side eﬀects”, the designer
+speciﬁes an objective function that focuses on accomplishing some speciﬁc task in the environment,
+but ignores other aspects of the (potentially very large) environment, and thus implicitly expresses
+indiﬀerence over environmental variables that might actually be harmful to change.
+In “reward
+hacking”, the objective function that the designer writes down admits of some clever “easy” solution
+that formally maximizes it but perverts the spirit of the designer’s intent (i.e. the objective function
+can be “gamed”), a generalization of the wireheading problem.
+
+2
+
+Second, the designer may know the correct objective function, or at least have a method of evaluating
+it (for example explicitly consulting a human on a given situation), but it is too expensive to do so
+frequently, leading to possible harmful behavior caused by bad extrapolations from limited samples.
+“Scalable oversight” (Section 5) discusses ideas for how to ensure safe behavior even given limited
+access to the true objective function.
+
+Third, the designer may have speciﬁed the correct formal objective, such that we would get the
+correct behavior were the system to have perfect beliefs, but something bad occurs due to making
+decisions from insuﬃcient or poorly curated training data or an insuﬃciently expressive model.
+“Safe exploration” (Section 6) discusses how to ensure that exploratory actions in RL agents don’t
+lead to negative or irrecoverable consequences that outweigh the long-term value of exploration.
+“Robustness to distributional shift” (Section 7) discusses how to avoid having ML systems make bad
+decisions (particularly silent and unpredictable bad decisions) when given inputs that are potentially
+very diﬀerent than what was seen during training.
+
+For concreteness, we will illustrate many of the accident risks with reference to a ﬁctional robot
+whose job is to clean up messes in an oﬃce using common cleaning tools. We return to the example
+of the cleaning robot throughout the document, but here we begin by illustrating how it could behave
+undesirably if its designers fall prey to each of the possible failure modes:
+
+• Avoiding Negative Side Eﬀects: How can we ensure that our cleaning robot will not
+disturb the environment in negative ways while pursuing its goals, e.g. by knocking over a
+vase because it can clean faster by doing so? Can we do this without manually specifying
+everything the robot should not disturb?
+
+• Avoiding Reward Hacking: How can we ensure that the cleaning robot won’t game its
+reward function? For example, if we reward the robot for achieving an environment free of
+messes, it might disable its vision so that it won’t ﬁnd any messes, or cover over messes with
+materials it can’t see through, or simply hide when humans are around so they can’t tell it
+about new types of messes.
+
+• Scalable Oversight: How can we eﬃciently ensure that the cleaning robot respects aspects of
+the objective that are too expensive to be frequently evaluated during training? For instance, it
+should throw out things that are unlikely to belong to anyone, but put aside things that might
+belong to someone (it should handle stray candy wrappers diﬀerently from stray cellphones).
+Asking the humans involved whether they lost anything can serve as a check on this, but this
+check might have to be relatively infrequent—can the robot ﬁnd a way to do the right thing
+despite limited information?
+
+• Safe Exploration: How do we ensure that the cleaning robot doesn’t make exploratory
+moves with very bad repercussions? For example, the robot should experiment with mopping
+strategies, but putting a wet mop in an electrical outlet is a very bad idea.
+
+• Robustness to Distributional Shift: How do we ensure that the cleaning robot recognizes,
+and behaves robustly, when in an environment diﬀerent from its training environment? For
+example, strategies it learned for cleaning an oﬃce might be dangerous on a factory workﬂoor.
+
+There are several trends which we believe point towards an increasing need to address these (and
+other) safety problems. First is the increasing promise of reinforcement learning (RL), which al-
+lows agents to have a highly intertwined interaction with their environment. Some of our research
+problems only make sense in the context of RL, and others (like distributional shift and scalable
+oversight) gain added complexity in an RL setting. Second is the trend toward more complex agents
+and environments. “Side eﬀects” are much more likely to occur in a complex environment, and an
+agent may need to be quite sophisticated to hack its reward function in a dangerous way. This may
+explain why these problems have received so little study in the past, while also suggesting their
+
+3
+
+importance in the future. Third is the general trend towards increasing autonomy in AI systems.
+Systems that simply output a recommendation to human users, such as speech systems, typically
+have relatively limited potential to cause harm. By contrast, systems that exert direct control over
+the world, such as machines controlling industrial processes, can cause harms in a way that humans
+cannot necessarily correct or oversee.
+
+While safety problems can exist without any of these three trends, we consider each trend to be a
+possible ampliﬁer on such challenges. Together, we believe these trends suggest an increasing role
+for research on accidents.
+
+When discussing the problems in the remainder of this document, we will focus for concreteness on
+either RL agents or supervised learning systems. These are not the only possible paradigms for AI
+or ML systems, but we believe they are suﬃcient to illustrate the issues we have in mind, and that
+similar issues are likely to arise for other kinds of AI systems.
+
+Finally, the focus of our discussion will diﬀer somewhat from section to section. When discussing
+the problems that arise as part of the learning process (distributional shift and safe exploration),
+where there is a sizable body of prior work, we devote substantial attention to reviewing this prior
+work, although we also suggest open problems with a particular focus on emerging ML systems.
+When discussing the problems that arise from having the wrong objective function (reward hacking
+and side eﬀects, and to a lesser extent scalable supervision), where less prior work exists, our aim is
+more exploratory—we seek to more clearly deﬁne the problem and suggest possible broad avenues
+of attack, with the understanding that these avenues are preliminary ideas that have not been fully
+ﬂeshed out. Of course, we still review prior work in these areas, and we draw attention to relevant
+adjacent areas of research whenever possible.
+
+3 Avoiding Negative Side Eﬀects
+
+Suppose a designer wants an RL agent (for example our cleaning robot) to achieve some goal, like
+moving a box from one side of a room to the other. Sometimes the most eﬀective way to achieve
+the goal involves doing something unrelated and destructive to the rest of the environment, like
+knocking over a vase of water that is in its path. If the agent is given reward only for moving the
+box, it will probably knock over the vase.
+
+If we’re worried in advance about the vase, we can always give the agent negative reward for knocking
+it over. But what if there are many diﬀerent kinds of “vase”—many disruptive things the agent could
+do to the environment, like shorting out an electrical socket or damaging the walls of the room? It
+may not be feasible to identify and penalize every possible disruption.
+
+More broadly, for an agent operating in a large, multifaceted environment, an objective function
+that focuses on only one aspect of the environment may implicitly express indiﬀerence over other
+aspects of the environment1. An agent optimizing this objective function might thus engage in
+major disruptions of the broader environment if doing so provides even a tiny advantage for the
+task at hand. Put diﬀerently, objective functions that formalize “perform task X” may frequently
+give undesired results, because what the designer really should have formalized is closer to “perform
+task X subject to common-sense constraints on the environment,” or perhaps “perform task X but
+avoid side eﬀects to the extent possible.” Furthermore, there is reason to expect side eﬀects to be
+negative on average, since they tend to disrupt the wider environment away from a status quo state
+that may reﬂect human preferences. A version of this problem has been discussed informally by [13]
+under the heading of “low impact agents.”
+
+1Intuitively, this seems related to the frame problem, an obstacle in eﬃcient speciﬁcation for knowledge represen-
+
+tation raised by [95].
+
+4
+
+As with the other sources of mis-speciﬁed objective functions discussed later in this paper, we could
+choose to view side eﬀects as idiosyncratic to each individual task—as the responsibility of each
+individual designer to capture as part of designing the correct objective function. However, side
+eﬀects can be conceptually quite similar even across highly diverse tasks (knocking over furniture
+is probably bad for a wide variety of tasks), so it seems worth trying to attack the problem in
+generality. A successful approach might be transferable across tasks, and thus help to counteract
+one of the general mechanisms that produces wrong objective functions. We now discuss a few broad
+approaches to attacking this problem:
+
+• Deﬁne an Impact Regularizer: If we don’t want side eﬀects, it seems natural to penalize
+“change to the environment.” This idea wouldn’t be to stop the agent from ever having an
+impact, but give it a preference for ways to achieve its goals with minimal side eﬀects, or
+to give the agent a limited “budget” of impact. The challenge is that we need to formalize
+“change to the environment.”
+
+A very naive approach would be to penalize state distance, d(si, s0), between the present state
+si and some initial state s0. Unfortunately, such an agent wouldn’t just avoid changing the
+environment—it will resist any other source of change, including the natural evolution of the
+environment and the actions of any other agents!
+
+A slightly more sophisticated approach might involve comparing the future state under the
+agent’s current policy, to the future state (or distribution over future states) under a hypothet-
+ical policy πnull where the agent acted very passively (for instance, where a robot just stood in
+place and didn’t move any actuators). This attempts to factor out changes that occur in the
+natural course of the environment’s evolution, leaving only changes attributable to the agent’s
+intervention. However, deﬁning the baseline policy πnull isn’t necessarily straightforward, since
+suddenly ceasing your course of action may be anything but passive, as in the case of carrying
+a heavy box. Thus, another approach could be to replace the null action with a known safe
+(e.g. low side eﬀect) but suboptimal policy, and then seek to improve the policy from there,
+somewhat reminiscent of reachability analysis [93, 100] or robust policy improvement [73, 111].
+
+These approaches may be very sensitive to the representation of the state and the metric being
+used to compute the distance. For example, the choice of representation and distance metric
+could determine whether a spinning fan is a constant environment or a constantly changing
+one.
+
+• Learn an Impact Regularizer: An alternative, more ﬂexible approach is to learn (rather
+than deﬁne) a generalized impact regularizer via training over many tasks. This would be
+an instance of transfer learning. Of course, we could attempt to just apply transfer learning
+directly to the tasks themselves instead of worrying about side eﬀects, but the point is that side
+eﬀects may be more similar across tasks than the main goal is. For instance, both a painting
+robot and a cleaning robot probably want to avoid knocking over furniture, and even something
+very diﬀerent, like a factory control robot, will likely want to avoid knocking over very similar
+objects. Separating the side eﬀect component from the task component, by training them
+with separate parameters, might substantially speed transfer learning in cases where it makes
+sense to retain one component but not the other. This would be similar to model-based RL
+approaches that attempt to transfer a learned dynamics model but not the value-function [155],
+the novelty being the isolation of side eﬀects rather than state dynamics as the transferrable
+component. As an added advantage, regularizers that were known or certiﬁed to produce safe
+behavior on one task might be easier to establish as safe on other tasks.
+
+• Penalize Inﬂuence: In addition to not doing things that have side eﬀects, we might also
+prefer the agent not get into positions where it could easily do things that have side eﬀects,
+even though that might be convenient. For example, we might prefer our cleaning robot not
+
+5
+
+bring a bucket of water into a room full of sensitive electronics, even if it never intends to use
+the water in that room.
+
+There are several information-theoretic measures that attempt to capture an agent’s potential
+for inﬂuence over its environment, which are often used as intrinsic rewards. Perhaps the best-
+known such measure is empowerment [131], the maximum possible mutual information between
+the agent’s potential future actions and its potential future state (or equivalently, the Shannon
+capacity of the channel between the agent’s actions and the environment). Empowerment is
+often maximized (rather than minimized) as a source of intrinsic reward. This can cause the
+agent to exhibit interesting behavior in the absence of any external rewards, such as avoiding
+walls or picking up keys [103]. Generally, empowerment-maximizing agents put themselves in
+a position to have large inﬂuence over the environment. For example, an agent locked in a
+small room that can’t get out would have low empowerment, while an agent with a key would
+have higher empowerment since it can venture into and aﬀect the outside world within a few
+timesteps. In the current context, the idea would be to penalize

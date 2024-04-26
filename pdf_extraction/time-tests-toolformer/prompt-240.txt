@@ -1,0 +1,67 @@
+are an editing assistant. Your task is to transform text extracted from a PDF into clean, well-formatted ASCII text. Remove page numbers, footnotes, figures, equations, and captions. Fix interruptions in the middle of sentences to make the sentence read smoothly. Where text is formatted into columns, restore it to unbroken ASCII text lines.  Reply only with the output text.
+
+Toolformer: Language Models Can Teach Themselves to Use Tools
+
+Timo Schick
+
+Jane Dwivedi-Yu Roberto Dessì† Roberta Raileanu
+
+Maria Lomeli Luke Zettlemoyer Nicola Cancedda Thomas Scialom
+
+Meta AI Research †Universitat Pompeu Fabra
+
+3
+2
+0
+2
+
+b
+e
+F
+9
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+1
+6
+7
+4
+0
+.
+2
+0
+3
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Language models (LMs) exhibit remarkable
+abilities to solve new tasks from just a few
+examples or textual instructions, especially at
+scale. They also, paradoxically, struggle with
+basic functionality, such as arithmetic or fac-
+tual lookup, where much simpler and smaller
+In this paper, we show that
+models excel.
+LMs can teach themselves to use external tools
+via simple APIs and achieve the best of both
+worlds. We introduce Toolformer, a model
+trained to decide which APIs to call, when to
+call them, what arguments to pass, and how to
+best incorporate the results into future token
+prediction. This is done in a self-supervised
+way, requiring nothing more than a

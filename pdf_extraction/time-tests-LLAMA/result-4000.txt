@@ -1,0 +1,61 @@
+Here is the cleaned and formatted text from the PDF:
+
+Open and Efficient Foundation Language Models
+
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothee Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, Aurelien Rodriguez, Armand Joulin, Edouard Grave, Guillaume Lample
+
+Meta AI 
+
+Abstract
+
+We introduce LLaMA, a collection of foundation language models ranging from 7B to 65B parameters. We train our models on trillions of tokens, and show that it is possible to train state-of-the-art models using publicly available datasets exclusively, without resorting to proprietary and inaccessible datasets. In particular, LLaMA-13B outperforms GPT-3 (175B) on most benchmarks, and LLaMA-65B is competitive with the best models, Chinchilla-70B and PaLM-540B. We release all our models to the research community.
+
+1 Introduction
+
+Large Languages Models (LLMs) trained on massive corpora of texts have shown their ability to perform new tasks from textual instructions or from a few examples. These few-shot properties first appeared when scaling models to a sufficient size, resulting in a line of work that focuses on further scaling these models. These efforts are based on the assumption that more parameters will lead to better performance. However, recent work from Hoffmann et al. (2022) shows that, for a given compute budget, the best performances are not achieved by the largest models, but by smaller models trained on more data.
+
+The objective of the scaling laws from Hoffmann et al. (2022) is to determine how to best scale the dataset and model sizes for a particular training compute budget. However, this objective disregards the inference budget, which becomes critical when serving a language model at scale. In this context, given a target level of performance, the preferred model is not the fastest to train but the fastest at inference, and although it may be cheaper to train a large model to reach a certain level of performance, a smaller one trained longer will ultimately be cheaper at inference.
+
+The focus of this work is to train a series of language models that achieve the best possible performance at various inference budgets, by training on more tokens than what is typically used. The resulting models, called LLaMA, ranges from 7B to 65B parameters with competitive performance compared to the best existing LLMs. For instance, LLaMA-13B outperforms GPT-3 on most benchmarks, despite being 10× smaller. We believe that this model will help democratize the access and study of LLMs, since it can be run on a single GPU. At the higher-end of the scale, our 65B-parameter model is also competitive with the best large language models such as Chinchilla or PaLM-540B.
+
+Unlike Chinchilla, PaLM, or GPT-3, we only use publicly available data, making our work compatible with open-sourcing, while most existing models rely on data which is either not publicly available or undocumented.
+
+2 Approach
+
+Our training approach is similar to the methods described in previous work, and is inspired by the Chinchilla scaling laws. We train large transformers on a large quantity of textual data using a standard optimizer.
+
+2.1 Pre-training Data
+
+Our training dataset is a mixture of several sources, reported in Table 1, that cover a diverse set of domains. For the most part, we reuse data sources that have been leveraged to train other LLMs, with the restriction of only using data that is publicly available, and compatible with open sourcing. This leads to the following mixture of data and the percentage they represent in the training set:
+
+English CommonCrawl [67%], C4 [15%], Github [4.5%], Wikipedia [4.5%], Gutenberg and Books3 [4.5%], ArXiv [2.5%], and Stack Exchange [2%]. Overall, our entire training dataset contains roughly 1.4T tokens after tokenization.
+
+2.2 Architecture
+
+Our network is based on the transformer architecture, with various improvements that were subsequently proposed, and used in different models such as PaLM. The main differences are: pre-normalization, SwiGLU activation function, and rotary positional embeddings.
+
+2.3 Optimizer
+
+Our models are trained using the AdamW optimizer, with a cosine learning rate schedule. We use a weight decay of 0.1 and gradient clipping of 1.0.
+
+2.4 Efficient implementation
+
+We make several optimizations to improve the training speed of our models, including an efficient implementation of the causal multi-head attention and checkpointing to reduce the amount of activations that are recomputed during the backward pass.
+
+3 Main results
+
+We evaluate LLaMA on a variety of benchmarks and compare to other large language models. Key results:
+
+- On common sense reasoning tasks, LLaMA-65B outperforms Chinchilla-70B and is competitive with PaLM-540B. LLaMA-13B outperforms GPT-3 on most benchmarks.
+
+- On closed-book question answering (Natural Questions, TriviaQA), LLaMA-65B achieves state-of-the-art performance, and LLaMA-13B is also competitive with GPT-3 and Chinchilla.
+
+- On reading comprehension (RACE), LLaMA-65B is competitive with PaLM-540B, and LLaMA-13B outperforms GPT-3.
+
+- On mathematical reasoning (MATH, GSM8k), LLaMA-65B outperforms the Minerva-62B model, which was fine-tuned on mathematical data.
+
+- On code generation (HumanEval, MBPP), LLaMA outperforms other general language models like LaMDA and PaLM that were not fine-tuned on code.
+
+- On the Massive Multitask Language Understanding (MMLU) benchmark, LLaMA-65B is slightly behind Chinchilla-70B and PaLM-540B.
+
+Overall, the LLaMA models demonstrate strong performance across a wide range of benchmarks, with the smaller 13B model being particularly impressive given its small size. The models are also efficient to train and run, making them accessible to a broader research community.

@@ -1,0 +1,37 @@
+Open and Efficient Foundation Language Models
+
+Introduction
+
+We introduce LLaMA, a collection of foundation language models ranging from 7B to 65B parameters. We train our models on trillions of tokens, using only publicly available datasets, without relying on proprietary or inaccessible data. Our 13B-parameter model, LLaMA-13B, outperforms GPT-3 (175B) on most benchmarks, while our 65B-parameter model is competitive with the best large language models like Chinchilla-70B and PaLM-540B.
+
+Approach
+
+Pre-training Data
+Our training dataset is a mixture of several publicly available sources, covering a diverse set of domains:
+
+- English CommonCrawl (67%)
+- C4 (15%)
+- Github (4.5%)
+- Wikipedia (4.5%)
+- Gutenberg and Books3 (4.5%)
+- ArXiv (2.5%)
+- StackExchange (2%)
+
+We use byte-pair encoding (BPE) tokenization, splitting numbers into individual digits and fallbacking to bytes for unknown UTF-8 characters.
+
+Architecture
+Our transformer-based models leverage several improvements over the original architecture:
+
+- Pre-normalization
+- SwiGLU activation function
+- Rotary Positional Embeddings
+
+Optimizer
+We train our models using the AdamW optimizer, with a cosine learning rate schedule, weight decay, and gradient clipping.
+
+Results
+
+Our models, called LLaMA, range from 7B to 65B parameters. LLaMA-13B outperforms GPT-3 (175B) on most benchmarks, while LLaMA-65B is competitive with the best large language models. We show that it is possible to train state-of-the-art models using only publicly available datasets.
+
+Bias and Toxicity Analysis
+We analyze the biases and toxicity encoded in our models using recent benchmarks from the responsible AI community.

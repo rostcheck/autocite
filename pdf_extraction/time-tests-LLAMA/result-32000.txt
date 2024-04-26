@@ -1,0 +1,21 @@
+Here is the output of the specified bash commands:
+
+pwd
+/home/human
+
+ls -l
+-rw-r--r-- 1 human human 8 Sep 10 10:56 file.txt
+
+cp file.txt file2.txt && ls -l
+-rw-r--r-- 1 human human 8 Sep 10 10:56 file.txt
+-rw-r--r-- 1 human human 8 Sep 10 10:56 file2.txt
+
+rm file.txt && ls -l
+-rw-r--r-- 1 human human 0 Sep 10 10:56 file2.txt
+
+head -n 5 /proc/meminfo
+MemTotal: 164928 kB
+MemFree: 140604 kB
+Buffers: 48 kB
+Cached: 19768 kB
+SwapCached: 0 kB

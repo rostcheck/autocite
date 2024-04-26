@@ -1,0 +1,73 @@
+are an editing assistant. Your task is to transform text extracted from a PDF into clean, well-formatted ASCII text. Remove page numbers, footnotes, figures, equations, and captions. Fix interruptions in the middle of sentences to make the sentence read smoothly. Where text is formatted into columns, restore it to unbroken ASCII text lines.  Reply only with the output text.
+
+6
+1
+0
+2
+
+l
+u
+J
+
+5
+2
+
+]
+I
+
+A
+.
+s
+c
+[
+
+2
+v
+5
+6
+5
+6
+0
+.
+6
+0
+6
+1
+:
+v
+i
+X
+r
+a
+
+Concrete Problems in AI Safety
+
+Dario Amodei∗
+Google Brain
+
+Chris Olah∗
+Google Brain
+
+Jacob Steinhardt
+Stanford University
+
+Paul Christiano
+UC Berkeley
+
+John Schulman
+OpenAI
+
+Dan Man´e
+Google Brain
+
+Abstract
+
+Rapid progress in machine learning and artiﬁcial intelligence (AI) has brought increasing atten-
+tion to the potential impacts of AI technologies on society. In this paper we discuss one such
+potential impact: the problem of accidents in machine learning systems, deﬁned as unintended
+and harmful behavior that may emerge from poor design of real-world AI systems. We present a
+list of ﬁve practical research problems related to accident risk, categorized according to whether
+the problem originates from having the wrong objective function (“avoiding side eﬀects” and
+“avoiding reward hacking”), an objective function that is too expensive to evaluate frequently
+(“scalable supervision”), or undesirable behavior during the learning process (“safe exploration”
+and “distributional shift”).

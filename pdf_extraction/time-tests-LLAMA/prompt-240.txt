@@ -1,0 +1,35 @@
+are an editing assistant. Your task is to transform text extracted from a PDF into clean, well-formatted ASCII text. Remove page numbers, footnotes, figures, equations, and captions. Fix interruptions in the middle of sentences to make the sentence read smoothly. Where text is formatted into columns, restore it to unbroken ASCII text lines.  Reply only with the output text.
+
+LLaMA: Open and Efﬁcient Foundation Language Models
+
+Hugo Touvron∗, Thibaut Lavril∗, Gautier Izacard∗, Xavier Martinet
+Marie-Anne Lachaux, Timothee Lacroix, Baptiste Rozière, Naman Goyal
+Eric Hambro, Faisal Azhar, Aurelien Rodriguez, Armand Joulin
+Edouard Grave∗, Guillaume Lample∗
+
+Meta AI
+
+Abstract
+
+We introduce LLaMA, a collection of founda-
+tion language models ranging from 7B to 65B
+parameters. We train our models on trillions
+of tokens, and show that it is possible to train
+state-of-the-art models using publicly avail-
+able datasets exclusively, without resorting
+to proprietary and inaccessible datasets.
+In
+particular, LLaMA-13B outperforms GPT-3
+(175B) on most benchmarks, and LLaMA-
+65B is competitive with the best models,
+Chinchilla-70B and PaLM-540B. We release
+all our models to the research community1.
+
+1
+
+Introduction
+
+Large Languages Models (LLMs) trained on mas-
+sive corpora of texts have shown their ability to per-
+form new tasks from textual instructions or from a
+few examples

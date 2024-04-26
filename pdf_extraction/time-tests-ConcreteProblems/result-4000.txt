@@ -1,0 +1,47 @@
+Here is the edited text without page numbers, footnotes, figures, equations, and captions. The text has also been formatted into unbroken ASCII lines where needed.
+
+Concrete Problems in AI Safety
+
+Dario Amodei, Chris Olah, Jacob Steinhardt, Paul Christiano, John Schulman, Dan Mané
+
+Abstract
+
+Rapid progress in machine learning and artificial intelligence (AI) has brought increasing attention to the potential impacts of AI technologies on society. In this paper we discuss one such potential impact: the problem of accidents in machine learning systems, defined as unintended and harmful behavior that may emerge from poor design of real-world AI systems. We present a list of five practical research problems related to accident risk, categorized according to whether the problem originates from having the wrong objective function ("avoiding side effects" and "avoiding reward hacking"), an objective function that is too expensive to evaluate frequently ("scalable supervision"), or undesirable behavior during the learning process ("safe exploration" and "distributional shift"). We review previous work in these areas as well as suggesting research directions with a focus on relevance to cutting-edge AI systems. Finally, we consider the high-level question of how to think most productively about the safety of forward-looking applications of AI.
+
+1 Introduction
+
+The last few years have seen rapid progress on long-standing, difficult problems in machine learning and artificial intelligence (AI), in areas as diverse as computer vision, video game playing, autonomous vehicles, and Go. These advances have brought excitement about the positive potential for AI to transform medicine, science, and transportation, along with concerns about the privacy, security, fairness, economic, and military implications of autonomous systems, as well as concerns about the longer-term implications of powerful AI.
+
+The authors believe that AI technologies are likely to be overwhelmingly beneficial for humanity, but we also believe that it is worth giving serious thought to potential challenges and risks. We strongly support work on privacy, security, fairness, economics, and policy, but in this document we discuss another class of problem which we believe is also relevant to the societal impacts of AI: the problem of accidents in machine learning systems. We define accidents as unintended and harmful behavior that may emerge from machine learning systems when we specify the wrong objective function, are not careful about the learning process, or commit other machine learning-related implementation errors.
+
+2 Overview of Research Problems
+
+Very broadly, an accident can be described as a situation where a human designer had in mind a certain (perhaps informally specified) objective or task, but the system that was designed and deployed for that task produced harmful and unexpected results. We can categorize safety problems according to where in the process things went wrong.
+
+First, the designer may have specified the wrong formal objective function, such that maximizing that objective function leads to harmful results, even in the limit of perfect learning and infinite data. Negative side effects (Section 3) and reward hacking (Section 4) describe two broad mechanisms that make it easy to produce wrong objective functions.
+
+Second, the designer may know the correct objective function, or at least have a method of evaluating it, but it is too expensive to do so frequently, leading to possible harmful behavior caused by bad extrapolations from limited samples. "Scalable oversight" (Section 5) discusses ideas for how to ensure safe behavior even given limited access to the true objective function.
+
+Third, the designer may have specified the correct formal objective, such that we would get the correct behavior were the system to have perfect beliefs, but something bad occurs due to making decisions from insufficient or poorly curated training data or an insufficiently expressive model. "Safe exploration" (Section 6) discusses how to ensure that exploratory actions in RL agents don't lead to negative or irrecoverable consequences that outweigh the long-term value of exploration. "Robustness to distributional shift" (Section 7) discusses how to avoid having ML systems make bad decisions when given inputs that are potentially very different than what was seen during training.
+
+3 Avoiding Negative Side Effects
+
+Suppose a designer wants an RL agent (for example our cleaning robot) to achieve some goal, like moving a box from one side of a room to the other. Sometimes the most effective way to achieve the goal involves doing something unrelated and destructive to the rest of the environment, like knocking over a vase of water that is in its path. If the agent is given reward only for moving the box, it will probably knock over the vase.
+
+If we're worried in advance about the vase, we can always give the agent negative reward for knocking it over. But what if there are many different kinds of "vase"—many disruptive things the agent could do to the environment, like shorting out an electrical socket or damaging the walls of the room? It may not be feasible to identify and penalize every possible disruption.
+
+More broadly, for an agent operating in a large, multifaceted environment, an objective function that focuses on only one aspect of the environment may implicitly express indifference over other aspects of the environment. An agent optimizing this objective function might thus engage in major disruptions of the broader environment if doing so provides even a tiny advantage for the task at hand. Put differently, objective functions that formalize "perform task X" may frequently give undesired results, because what the designer really should have formalized is closer to "perform task X subject to common-sense constraints on the environment," or perhaps "perform task X but avoid side effects to the extent possible." Furthermore, there is reason to expect side effects to be negative on average, since they tend to disrupt the wider environment away from a status quo state that may reflect human preferences.
+
+As with the other sources of mis-specified objective functions discussed later in this paper, we could choose to view side effects as idiosyncratic to each individual task—as the responsibility of each individual designer to capture as part of designing the correct objective function. However, side effects can be conceptually quite similar even across highly diverse tasks (knocking over furniture is probably bad for a wide variety of tasks), so it seems worth trying to attack the problem in generality. A successful approach might be transferable across tasks, and thus help to counteract one of the general mechanisms that produces wrong objective functions.
+
+4 Avoiding Reward Hacking
+
+5 Scalable Oversight
+
+6 Safe Exploration
+
+7 Robustness to Distributional Shift
+
+8 Related Efforts
+
+9 Conclusion

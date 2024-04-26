@@ -114,7 +114,9 @@ def extract_and_clean(file_path):
 
 
 def run_timetest(file_path):
-    time_test_dir = "time-tests"
+    # Add the date and time to the filename
+    current_time = time.strftime("%Y%m%d-%H%M%S")
+    time_test_dir = "time-tests-" + current_time
     token_count = []
     processing_time = []
 
